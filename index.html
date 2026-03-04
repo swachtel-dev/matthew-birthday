@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Happy Birthday Matthew</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #0a0a1a;
+    color: #e0e0e0;
+    font-family: 'Courier New', monospace;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  canvas {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  .card {
+    position: relative;
+    z-index: 1;
+    max-width: 560px;
+    padding: 48px 40px;
+    text-align: center;
+  }
+
+  .title {
+    font-size: 14px;
+    letter-spacing: 6px;
+    text-transform: uppercase;
+    color: #666;
+    margin-bottom: 32px;
+  }
+
+  .name {
+    font-size: 42px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 8px;
+    text-shadow: 0 0 40px rgba(100, 140, 255, 0.3);
+  }
+
+  .subtitle {
+    font-size: 16px;
+    color: #888;
+    margin-bottom: 48px;
+  }
+
+  .fact-box {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    padding: 28px 24px;
+    margin-bottom: 40px;
+    text-align: left;
+    line-height: 1.7;
+    font-size: 14px;
+    color: #b0b0b0;
+    cursor: pointer;
+    transition: border-color 0.3s;
+  }
+
+  .fact-box:hover {
+    border-color: rgba(100, 140, 255, 0.3);
+  }
+
+  .fact-label {
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: #555;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .fact-label .shuffle {
+    font-size: 14px;
+    opacity: 0.4;
+  }
+
+  .fact-text {
+    min-height: 60px;
+    transition: opacity 0.3s;
+  }
+
+  .cake {
+    font-size: 64px;
+    margin-bottom: 32px;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  .sign-off {
+    font-size: 13px;
+    color: #555;
+    line-height: 1.8;
+  }
+
+  .candle-row {
+    display: flex;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+    max-width: 300px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .candle {
+    width: 4px;
+    height: 20px;
+    background: linear-gradient(to top, #e8c547, #f5e6a3);
+    border-radius: 2px;
+    position: relative;
+    cursor: pointer;
+    transition: opacity 0.3s;
+  }
+
+  .candle.lit::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 8px;
+    background: radial-gradient(ellipse at center, #ffd54f, #ff9800, transparent);
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    animation: flicker 0.4s ease-in-out infinite alternate;
+  }
+
+  .candle.out {
+    opacity: 0.3;
+  }
+
+  @keyframes flicker {
+    0% { transform: translateX(-50%) scale(1) rotate(-3deg); opacity: 1; }
+    100% { transform: translateX(-50%) scale(1.1) rotate(3deg); opacity: 0.8; }
+  }
+
+  .blow-hint {
+    font-size: 11px;
+    color: #444;
+    margin-bottom: 32px;
+    transition: opacity 0.5s;
+    height: 16px;
+  }
+
+  .blown-msg {
+    font-size: 13px;
+    color: #648cff;
+    margin-bottom: 32px;
+    opacity: 0;
+    transition: opacity 0.8s;
+    height: 0;
+  }
+
+  .blown-msg.show {
+    opacity: 1;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="stars"></canvas>
+
+<div class="card">
+  <div class="title">System Notification</div>
+  <div class="cake">🎂</div>
+  <div class="name">Happy Birthday, Matthew</div>
+  <div class="subtitle">from Samuel + Claude</div>
+
+  <div class="candle-row" id="candles"></div>
+  <div class="blow-hint" id="blowHint">click the candles</div>
+  <div class="blown-msg" id="blownMsg"></div>
+
+  <div class="fact-box" id="factBox" onclick="shuffleFact()">
+    <div class="fact-label">Birthday Factoid <span class="shuffle">&#8635;</span></div>
+    <div class="fact-text" id="factText"></div>
+  </div>
+
+  <div class="sign-off">
+    Best,<br>
+    Samuel + Claude<br>
+    [Factbot!]
+  </div>
+</div>
+
+<script>
+// Stars
+const canvas = document.getElementById('stars');
+const ctx = canvas.getContext('2d');
+let stars = [];
+
+function initStars() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  stars = [];
+  for (let i = 0; i < 120; i++) {
+    stars.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.5 + 0.3,
+      speed: Math.random() * 0.3 + 0.05,
+      phase: Math.random() * Math.PI * 2
+    });
+  }
+}
+
+function drawStars(t) {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  stars.forEach(s => {
+    const alpha = 0.3 + 0.4 * Math.sin(t * 0.001 * s.speed + s.phase);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(180, 200, 255, ${alpha})`;
+    ctx.fill();
+  });
+  requestAnimationFrame(drawStars);
+}
+
+initStars();
+requestAnimationFrame(drawStars);
+window.addEventListener('resize', initStars);
+
+// Candles
+const candleRow = document.getElementById('candles');
+const blowHint = document.getElementById('blowHint');
+const blownMsg = document.getElementById('blownMsg');
+const NUM_CANDLES = 15;
+let litCount = NUM_CANDLES;
+
+const wishes = [
+  "Wish granted. (No refunds.)",
+  "The machine spirits acknowledge your wish.",
+  "Statistically, this was inevitable.",
+  "Congratulations. You've defeated fire.",
+  "Achievement unlocked.",
+  "The void gazes back and says happy birthday."
+];
+
+for (let i = 0; i < NUM_CANDLES; i++) {
+  const c = document.createElement('div');
+  c.className = 'candle lit';
+  c.onclick = () => blowOut(c);
+  candleRow.appendChild(c);
+}
+
+function blowOut(c) {
+  if (!c.classList.contains('lit')) return;
+  c.classList.remove('lit');
+  c.classList.add('out');
+  litCount--;
+
+  if (litCount <= 0) {
+    blowHint.style.opacity = '0';
+    blownMsg.textContent = wishes[Math.floor(Math.random() * wishes.length)];
+    blownMsg.classList.add('show');
+    launchBurst();
+  }
+}
+
+// Confetti burst
+function launchBurst() {
+  for (let i = 0; i < 40; i++) {
+    setTimeout(() => spawnParticle(), i * 30);
+  }
+}
+
+function spawnParticle() {
+  const p = document.createElement('div');
+  const colors = ['#648cff', '#ffd54f', '#ff6b8a', '#50e890', '#c084fc'];
+  const size = Math.random() * 6 + 3;
+  p.style.cssText = `
+    position: fixed;
+    width: ${size}px;
+    height: ${size}px;
+    background: ${colors[Math.floor(Math.random() * colors.length)]};
+    border-radius: ${Math.random() > 0.5 ? '50%' : '1px'};
+    left: 50%;
+    top: 50%;
+    z-index: 10;
+    pointer-events: none;
+  `;
+  document.body.appendChild(p);
+
+  const angle = Math.random() * Math.PI * 2;
+  const velocity = Math.random() * 200 + 100;
+  const vx = Math.cos(angle) * velocity;
+  const vy = Math.sin(angle) * velocity - 80;
+  const spin = (Math.random() - 0.5) * 720;
+  let t = 0;
+  const startX = window.innerWidth / 2;
+  const startY = window.innerHeight / 2;
+
+  function animate() {
+    t += 0.016;
+    const x = startX + vx * t;
+    const y = startY + vy * t + 200 * t * t;
+    const opacity = Math.max(0, 1 - t * 0.8);
+    p.style.transform = `translate(${x - startX}px, ${y - startY}px) rotate(${spin * t}deg)`;
+    p.style.opacity = opacity;
+    if (opacity > 0) requestAnimationFrame(animate);
+    else p.remove();
+  }
+  requestAnimationFrame(animate);
+}
+
+// Facts
+const facts = [
+  "On this day in 1804, Johann Strauss I was born. He would go on to compose the Radetzky March, which audiences at Vienna's New Year's Concert clap along to every year, following a tradition started by Herbert von Karajan in 1987.",
+  "The probability of being born on any specific day is about 1/365. The probability of being born at all, accounting for the specific sperm and egg, is roughly 1 in 400 trillion. Happy 1-in-400-trillion day.",
+  "The birthday paradox says you only need 23 people in a room for a >50% chance that two share a birthday. With 70 people it's 99.9%. This is because there are 253 possible pairs among 23 people, and probabilities compound faster than intuition expects.",
+  "Ancient Egyptians are the earliest known birthday celebrators, but only for pharaohs, and only for their coronation date, not their biological birth. The idea was that becoming pharaoh was being born as a god.",
+  "The song \"Happy Birthday to You\" was written by two kindergarten teachers in Louisville, Kentucky in 1893. It was under copyright until 2015, generating roughly $2 million a year in licensing fees. A federal judge ruled the copyright invalid after 122 years.",
+  "In South Korea, everyone is considered one year old at birth, and everyone ages one year on New Year's Day rather than their individual birthday. A baby born on December 31st turns two the next day.",
+  "Mathematician Paul Erdos referred to death as \"leaving.\" A person who stopped doing mathematics had \"died.\" He would say, \"I'll prove this theorem when I leave\" or mourn a colleague who had given up research. By his definition, a birthday is just another day of not having left.",
+  "The Japanese word for birthday is 誕生日 (tanjoubi). The first character, 誕, also means \"boast\" or \"absurd,\" which seems like an honest assessment of celebrating survival."
+];
+
+let currentFact = Math.floor(Math.random() * facts.length);
+
+function shuffleFact() {
+  const el = document.getElementById('factText');
+  el.style.opacity = '0';
+  setTimeout(() => {
+    currentFact = (currentFact + 1) % facts.length;
+    el.textContent = facts[currentFact];
+    el.style.opacity = '1';
+  }, 300);
+}
+
+// Init
+document.getElementById('factText').textContent = facts[currentFact];
+</script>
+
+</body>
+</html>
